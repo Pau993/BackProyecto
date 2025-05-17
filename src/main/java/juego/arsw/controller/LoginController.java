@@ -31,6 +31,14 @@ public class LoginController {
         put("andres", "1234");
         put("manuel", "abcd");
         put("paula", "pass123");
+        put("diegot","adminpass");
+    }};
+
+    private static final Map<String, String> roles = new HashMap<>() {{
+        put("andres", "user");
+        put("manuel", "user");
+        put("paula", "user");
+        put("diegot","admin");
     }};
 
     @PostMapping("/login")
@@ -46,8 +54,11 @@ public class LoginController {
             return ResponseEntity.status(401).body("Credenciales inválidas");
         }
 
+        String role = roles.get(username);
+
         String token = Jwts.builder()
                 .setSubject(username)
+                .claim("role", role)
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
                 .compact();
