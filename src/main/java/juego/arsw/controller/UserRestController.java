@@ -25,15 +25,13 @@ public class UserRestController extends TextWebSocketHandler {
     private static final Logger logger = Logger.getLogger(UserRestController.class.getName());
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, EntityPerson> availablePersons = new ConcurrentHashMap<>();
+    private final Map<String, String> sessionRoles = new ConcurrentHashMap<>();
     // Initialize a default EntityPerson object
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         String playerId = session.getId();
         sessions.put(playerId, session);
-        User newPlayer = new User(playerId);
-        newPlayer.setHasPerson("0");
-        players.put(playerId, newPlayer);
 
         String message = "{\"type\":\"PLAYER_ID\",\"playerId\":\"" + playerId + "\"}";
         session.sendMessage(new TextMessage(message));
@@ -53,6 +51,29 @@ public class UserRestController extends TextWebSocketHandler {
 
         try {
             JSONObject data = new JSONObject(payload);
+
+
+            String role = data.optString("role", "user");
+            sessionRoles.put(playerId, role);
+
+            if ("admin".equalsIgnoreCase(role)){
+                logger.info("Admin connected: " + playerId);
+                sessions.put(playerId, session);
+                
+                sendPlayersCountToAdmin(session);
+                return;
+            } 
+            
+            sessions.put(playerId, session);
+            
+            if (!players.containsKey(playerId)) {
+                User newPlayer = new User(playerId);
+                String name = data.optString("name", "Player_" + playerId);
+                newPlayer.setName(name);
+                newPlayer.setHasPerson("0");
+                players.put(playerId, newPlayer);
+                broadcastPlayersCountToAdmins(); // Notificar a admins
+            }
 
             if (data.has("personId") && data.has("active")) {
                 System.out.println("-------------------------------------------------------------------------------------------------------------------------------------------------------------------");
@@ -348,4 +369,33 @@ public class UserRestController extends TextWebSocketHandler {
             logger.severe("Error broadcasting person status: " + e.getMessage());
         }
     }
+
+
+    private void broadcastPlayersCountToAdmins() {
+        int count = players.size();
+        JSONObject response = new JSONObject();
+        response.put("type", "playersCount");
+        response.put("count", count);
+        TextMessage message = new TextMessage(response.toString());
+
+        sessions.forEach((sessionId, sess) -> {
+            String role = sessionRoles.getOrDefault(sessionId, "user");
+            if ("admin".equalsIgnoreCase(role) && sess.isOpen()) {
+                try {
+                    sess.sendMessage(message);
+                } catch (IOException e) {
+                    logger.warning("Error enviando conteo a admin " + sessionId + ": " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    private void sendPlayersCountToAdmin(WebSocketSession session) throws IOException {
+        int count = players.size();
+        JSONObject response = new JSONObject();
+        response.put("type", "playersCount");
+        response.put("count", count);
+        session.sendMessage(new TextMessage(response.toString()));
+    }
+
 }
