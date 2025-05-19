@@ -3,6 +3,7 @@ package juego.arsw.controller;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
@@ -26,27 +27,36 @@ public class UserRestController extends TextWebSocketHandler {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, EntityPerson> availablePersons = new ConcurrentHashMap<>();
     private final Map<String, String> sessionRoles = new ConcurrentHashMap<>();
+    private final Map<String, String> sessionToPlayerId = new ConcurrentHashMap<>();
+
     // Initialize a default EntityPerson object
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        String playerId = session.getId();
-        sessions.put(playerId, session);
+public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+    String sessionId = session.getId();
+    String playerId = generatePlate(); // Usar la placa en lugar del sessionId
+    
+    // Guardar la sesión con la nueva placa como ID
+    sessions.put(playerId, session);
+    
+    // También necesitamos mantener un mapeo entre sessionId y playerId
+    sessionToPlayerId.put(sessionId, playerId);
 
-        String message = "{\"type\":\"PLAYER_ID\",\"playerId\":\"" + playerId + "\"}";
-        session.sendMessage(new TextMessage(message));
+    String message = "{\"type\":\"PLAYER_ID\",\"playerId\":\"" + playerId + "\"}";
+    session.sendMessage(new TextMessage(message));
 
-        if (availablePersons.isEmpty()) {
-            initializeAvailablePersons();
-        }
-
-        broadcastAvailablePersons();
-        broadcastPlayerStates();
+    if (availablePersons.isEmpty()) {
+        initializeAvailablePersons();
     }
+
+    broadcastAvailablePersons();
+    broadcastPlayerStates();
+}
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        String playerId = session.getId();
+        String sessionId = session.getId();
+        String playerId = sessionToPlayerId.get(sessionId);
         String payload = message.getPayload();
 
         try {
@@ -261,13 +271,17 @@ public class UserRestController extends TextWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        String playerId = session.getId();
-        sessions.remove(playerId);
-        players.remove(playerId);
-        logger.info("Player " + playerId + " disconnected");
-        broadcastPlayerStates();
-    }
+public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+    String sessionId = session.getId();
+    String playerId = sessionToPlayerId.get(sessionId);
+    
+    sessions.remove(playerId);
+    players.remove(playerId);
+    sessionToPlayerId.remove(sessionId);
+    
+    logger.info("Player " + playerId + " disconnected");
+    broadcastPlayerStates();
+}
 
     private void broadcastPlayerPositions() {
         try {
@@ -397,5 +411,25 @@ public class UserRestController extends TextWebSocketHandler {
         response.put("count", count);
         session.sendMessage(new TextMessage(response.toString()));
     }
+
+    private String generatePlate() {
+    String letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    String numbers = "0123456789";
+    StringBuilder plate = new StringBuilder();
+    
+    // Genera 3 números
+    Random random = new Random();
+    for(int i = 0; i < 3; i++) {
+        plate.append(numbers.charAt(random.nextInt(numbers.length())));
+    }
+    
+    // Genera 3 letras
+    for(int i = 0; i < 3; i++) {
+        plate.append(letters.charAt(random.nextInt(letters.length())));
+    }
+    
+    return plate.toString();
+}
+
 
 }

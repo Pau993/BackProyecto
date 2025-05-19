@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-ArswApplication<arsw>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "juego.arsw.ArswApplication",
+            "projectName": "arsw",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
