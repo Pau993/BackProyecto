@@ -1,6 +1,9 @@
-package juego.arsw.model;
+package juego.arsw;
 
 import org.junit.jupiter.api.Test;
+
+import juego.arsw.model.User;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class UserTest {
