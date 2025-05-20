@@ -32,9 +32,7 @@ public class LoginControllerTest {
     @BeforeEach
     public void setUp() {
         userCredentials = new HashMap<>();
-        // Usar lenient() para permitir configuraciones de mock no utilizadas
-        lenient().when(mockRequest.getHeader("X-Forwarded-For")).thenReturn(null);
-        lenient().when(mockRequest.getRemoteAddr()).thenReturn("127.0.0.1");
+        // Eliminados los stubbings innecesarios de aquí
     }
 
     @Test
@@ -84,55 +82,58 @@ public class LoginControllerTest {
     }
 
     @Test
-    public void testAccountBlockAfterThreeFailedAttempts() {
-        // Arrange
-        userCredentials.put("username", "andres");
-        userCredentials.put("password", "wrongPassword");
+public void testAccountBlockAfterThreeFailedAttempts() {
+    // Arrange
+    userCredentials.put("username", "andres");
+    userCredentials.put("password", "wrongPassword");
+    // Eliminados los stubbings innecesarios
+    
+    // Act - 3 failed login attempts
+    loginController.login(userCredentials, mockRequest);
+    loginController.login(userCredentials, mockRequest);
+    loginController.login(userCredentials, mockRequest);
+    
+    // 4th attempt should be blocked
+    ResponseEntity<?> response = loginController.login(userCredentials, mockRequest);
 
-        // Act - 3 failed login attempts
-        loginController.login(userCredentials, mockRequest);
-        loginController.login(userCredentials, mockRequest);
-        loginController.login(userCredentials, mockRequest);
-        
-        // 4th attempt should be blocked
-        ResponseEntity<?> response = loginController.login(userCredentials, mockRequest);
-
-        // Assert
-        assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
-        assertTrue(response.getBody() instanceof Map);
-        
-        @SuppressWarnings("unchecked")
-        Map<String, Object> responseBody = (Map<String, Object>) response.getBody();
-        assertEquals("Demasiados intentos fallidos. Intente más tarde.", responseBody.get("message"));
-        assertTrue(((Number)responseBody.get("retryAfter")).longValue() > 0);
-    }
+    // Assert
+    assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
+    assertTrue(response.getBody() instanceof Map);
+    
+    @SuppressWarnings("unchecked")
+    Map<String, Object> responseBody = (Map<String, Object>) response.getBody();
+    assertEquals("Demasiados intentos fallidos. Intente más tarde.", responseBody.get("message"));
+    assertTrue(((Number)responseBody.get("retryAfter")).longValue() > 0);
+}
 
     @Test
-    public void testSuccessfulLoginResetsFailedAttempts() {
-        // Arrange
-        Map<String, String> invalidCredentials = new HashMap<>();
-        invalidCredentials.put("username", "andres");
-        invalidCredentials.put("password", "wrongPassword");
+public void testSuccessfulLoginResetsFailedAttempts() {
+    // Arrange
+    Map<String, String> invalidCredentials = new HashMap<>();
+    invalidCredentials.put("username", "andres");
+    invalidCredentials.put("password", "wrongPassword");
 
-        Map<String, String> validCredentials = new HashMap<>();
-        validCredentials.put("username", "andres");
-        validCredentials.put("password", "1234");
+    Map<String, String> validCredentials = new HashMap<>();
+    validCredentials.put("username", "andres");
+    validCredentials.put("password", "1234");
+    
+    // Eliminados los stubbings innecesarios
 
-        // Act - 2 failed login attempts
-        loginController.login(invalidCredentials, mockRequest);
-        loginController.login(invalidCredentials, mockRequest);
-        
-        // Successful login
-        ResponseEntity<?> successResponse = loginController.login(validCredentials, mockRequest);
-        
-        // Try failed login again
-        ResponseEntity<?> failedResponse = loginController.login(invalidCredentials, mockRequest);
+    // Act - 2 failed login attempts
+    loginController.login(invalidCredentials, mockRequest);
+    loginController.login(invalidCredentials, mockRequest);
+    
+    // Successful login
+    ResponseEntity<?> successResponse = loginController.login(validCredentials, mockRequest);
+    
+    // Try failed login again
+    ResponseEntity<?> failedResponse = loginController.login(invalidCredentials, mockRequest);
 
-        // Assert
-        assertEquals(HttpStatus.OK, successResponse.getStatusCode());
-        assertEquals(HttpStatus.UNAUTHORIZED, failedResponse.getStatusCode());
-        assertEquals("Credenciales inválidas", failedResponse.getBody());
-    }
+    // Assert
+    assertEquals(HttpStatus.OK, successResponse.getStatusCode());
+    assertEquals(HttpStatus.UNAUTHORIZED, failedResponse.getStatusCode());
+    assertEquals("Credenciales inválidas", failedResponse.getBody());
+}
 
     @Test
     public void testAdminLogin() {
@@ -151,7 +152,7 @@ public class LoginControllerTest {
         Map<String, String> responseBody = (Map<String, String>) response.getBody();
         String token = responseBody.get("token");
         assertNotNull(token);
-        // Verificar que el token tenga el formato correcto
+        // Verificar que el token tenga el formato correcto (podríamos decodificarlo para verificar el rol)
         assertTrue(token.split("\\.").length == 3); // formato JWT: header.payload.signature
     }
 }

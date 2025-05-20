@@ -1,0 +1,4 @@
+{
+    "sonarQubeUri": "http://sonarqubeappservicesup.azurewebsites.net",
+    "projectKey": "my-Java-web-app"
+}
