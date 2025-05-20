@@ -34,7 +34,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+    public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         User playerData = objectMapper.readValue(message.getPayload(), User.class);
         User processedUser = userService.processUser(playerData);
         

@@ -27,6 +27,9 @@ public class User{
         this.name = "Player-" + id;
     }
 
+    public User() {
+    }
+
     public String getHasPerson() {
         return hasPerson;
     }
