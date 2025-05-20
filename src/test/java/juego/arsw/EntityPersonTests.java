@@ -1,4 +1,4 @@
-package juego;
+package juego.arsw;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
