@@ -50,19 +50,19 @@ public class UserRestControllerTest {
     public void testAfterConnectionEstablished() throws Exception {
         // Arrange
         when(mockSession.isOpen()).thenReturn(true);
-        
+
         // Act
         controller.afterConnectionEstablished(mockSession);
-        
+
         // Assert
         verify(mockSession, times(3)).sendMessage(messageCaptor.capture());
-        
+
         // Verify PLAYER_ID message
         TextMessage firstMessage = messageCaptor.getAllValues().get(0);
         JsonNode firstMessageNode = objectMapper.readTree(firstMessage.getPayload());
         assertEquals("PLAYER_ID", firstMessageNode.get("type").asText());
         assertNotNull(firstMessageNode.get("playerId").asText());
-        
+
         // Verify availablePersons message
         TextMessage secondMessage = messageCaptor.getAllValues().get(1);
         JsonNode secondMessageNode = objectMapper.readTree(secondMessage.getPayload());
@@ -78,26 +78,26 @@ public class UserRestControllerTest {
         updateData.put("x", 10.5);
         updateData.put("y", 20.3);
         updateData.put("direction", "right");
-        
+
         // Act
         controller.handleTextMessage(mockSession, new TextMessage(updateData.toString()));
-        
+
         // Assert
         verify(mockSession, atLeastOnce()).sendMessage(messageCaptor.capture());
-        
+
         // Get relevant messages
         TextMessage positionsMessage = findMessageByType("positions");
         assertNotNull(positionsMessage);
-        
+
         // Verify the player position was updated
         JsonNode positionsNode = objectMapper.readTree(positionsMessage.getPayload());
         JsonNode playersNode = positionsNode.get("players");
         assertNotNull(playersNode);
-        
+
         // Get the player ID from session mapping
         Map<String, String> sessionToPlayerId = getSessionToPlayerIdMap();
         String playerId = sessionToPlayerId.get("test-session-id");
-        
+
         // Check if the player position was updated correctly
         JsonNode playerNode = playersNode.get(playerId);
         assertNotNull(playerNode);
@@ -110,26 +110,26 @@ public class UserRestControllerTest {
     public void testHandlePersonCollected() throws Exception {
         // Arrange
         setupInitialConnection();
-        
+
         // Initialize persons
         Map<String, EntityPerson> availablePersons = new ConcurrentHashMap<>();
         availablePersons.put("p1", new EntityPerson("p1", 4, 6, "PersonaCorbata.png"));
         ReflectionTestUtils.setField(controller, "availablePersons", availablePersons);
-        
+
         JSONObject collectData = new JSONObject();
         collectData.put("type", "collectPerson");
         collectData.put("personId", "p1");
-        
+
         // Act
         controller.handleTextMessage(mockSession, new TextMessage(collectData.toString()));
-        
+
         // Assert
         verify(mockSession, atLeastOnce()).sendMessage(messageCaptor.capture());
-        
+
         // Find availablePersons message
         TextMessage personsMessage = findMessageByType("availablePersons");
         assertNotNull(personsMessage);
-        
+
         // Verify person was removed
         JsonNode personsNode = objectMapper.readTree(personsMessage.getPayload());
         JsonNode availablePersonsNode = personsNode.get("persons");
@@ -138,23 +138,23 @@ public class UserRestControllerTest {
 
     @Test
     public void testAfterConnectionClosed() throws Exception {
-    // Arrange
+        // Arrange
         when(mockSession.getId()).thenReturn("test-session-id");
         when(mockSession.isOpen()).thenReturn(true);
         controller.afterConnectionEstablished(mockSession);
         clearInvocations(mockSession); // Limpiar interacciones previas
-    
-    // Get the player ID from session mapping
+
+        // Get the player ID from session mapping
         Map<String, String> sessionToPlayerId = getSessionToPlayerIdMap();
         String playerId = sessionToPlayerId.get("test-session-id");
-    
-    // Act
+
+        // Act
         controller.afterConnectionClosed(mockSession, CloseStatus.NORMAL);
-    
-    // Assert
+
+        // Assert
         Map<String, WebSocketSession> sessions = getSessionsMap();
         Map<String, User> players = getPlayersMap();
-    
+
         assertFalse(sessions.containsKey(playerId));
         assertFalse(players.containsKey(playerId));
         assertFalse(sessionToPlayerId.containsKey("test-session-id"));
@@ -164,31 +164,31 @@ public class UserRestControllerTest {
     public void testHandlePersonStateUpdate() throws Exception {
         // Arrange
         setupInitialConnection();
-        
+
         // Initialize persons
         Map<String, EntityPerson> availablePersons = new ConcurrentHashMap<>();
         availablePersons.put("p1", new EntityPerson("p1", 4, 6, "PersonaCorbata.png"));
         ReflectionTestUtils.setField(controller, "availablePersons", availablePersons);
-        
+
         JSONObject updateData = new JSONObject();
         updateData.put("personId", "p1");
         updateData.put("active", false);
-        
+
         // Act
         controller.handleTextMessage(mockSession, new TextMessage(updateData.toString()));
-        
+
         // Assert
         verify(mockSession, atLeastOnce()).sendMessage(messageCaptor.capture());
-        
+
         // Find personStateUpdate message
         TextMessage stateUpdateMessage = findMessageByType("personStateUpdate");
         assertNotNull(stateUpdateMessage);
-        
+
         // Verify state update message
         JsonNode stateUpdateNode = objectMapper.readTree(stateUpdateMessage.getPayload());
         assertEquals("p1", stateUpdateNode.get("personId").asText());
         assertFalse(stateUpdateNode.get("active").asBoolean());
-        
+
         // Verify person was removed
         Map<String, EntityPerson> updatedPersons = getAvailablePersonsMap();
         assertFalse(updatedPersons.containsKey("p1"));
@@ -196,43 +196,49 @@ public class UserRestControllerTest {
 
     @Test
     public void testAdminConnection() throws Exception {
-    // Arrange - Configuración directa para este test
+        // Arrange
         when(mockSession.getId()).thenReturn("test-session-id");
         when(mockSession.isOpen()).thenReturn(true);
-    
-    // Establecer conexión inicial
+
+        // Establecer conexión inicial
         controller.afterConnectionEstablished(mockSession);
-    
-    // Limpiar las interacciones previas para no confundir las verificaciones
+
+        // Limpiar las interacciones previas para no confundir las verificaciones
         clearInvocations(mockSession);
-    
-    // NO reconfiguramos isOpen() aquí, ya que no es necesario y causa el error
-    // when(mockSession.isOpen()).thenReturn(true); <- ELIMINAR ESTA LÍNEA
-    
-    // Preparar datos para simular mensaje de admin
+
+        // Preparar datos para simular mensaje de admin
         JSONObject adminData = new JSONObject();
         adminData.put("role", "admin");
-    
-    // Act
+
+        // Act
         controller.handleTextMessage(mockSession, new TextMessage(adminData.toString()));
-    
-    // Assert
+
+        // Assert
         verify(mockSession, atLeastOnce()).sendMessage(messageCaptor.capture());
-    
-    // Find playersCount message
-        TextMessage countMessage = findMessageByType("playersCount");
-        assertNotNull(countMessage);
-    
-    // Verify count message
-        JsonNode countNode = objectMapper.readTree(countMessage.getPayload());
-        assertTrue(countNode.has("count"));
-        assertEquals(0, countNode.get("count").asInt());
-    
-    // Verify role is set to admin
+
+        // Buscar mensaje con tipo "playersInfo"
+        TextMessage playersInfoMessage = findMessageByType("playersInfo");
+        assertNotNull(playersInfoMessage, "No se encontró mensaje de tipo 'playersInfo'");
+
+        JsonNode jsonNode = objectMapper.readTree(playersInfoMessage.getPayload());
+
+        // Validar que el mensaje contenga count
+        assertTrue(jsonNode.has("count"), "Mensaje no tiene campo 'count'");
+
+        // Validar que el mensaje contenga players (lista)
+        assertTrue(jsonNode.has("players"), "Mensaje no tiene campo 'players'");
+
+        // Validar que players es un array
+        assertTrue(jsonNode.get("players").isArray(), "'players' no es un arreglo JSON");
+
+        // Opcional: validar que la lista está vacía inicialmente
+        assertEquals(0, jsonNode.get("players").size(), "Lista 'players' debe estar vacía inicialmente");
+
+        // Validar que el rol quedó correctamente seteado
         Map<String, String> sessionRoles = getSessionRolesMap();
         Map<String, String> sessionToPlayerId = getSessionToPlayerIdMap();
         String playerId = sessionToPlayerId.get("test-session-id");
-        assertEquals("admin", sessionRoles.get(playerId));
+        assertEquals("admin", sessionRoles.get(playerId), "El rol no fue seteado como admin");
     }
 
     // Helper methods

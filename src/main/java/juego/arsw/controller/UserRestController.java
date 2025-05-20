@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import juego.arsw.model.EntityPerson;
 import juego.arsw.model.User;
-
+import org.json.JSONArray;
 @RestController
 public class UserRestController extends TextWebSocketHandler {
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
@@ -392,12 +392,12 @@ public class UserRestController extends TextWebSocketHandler {
         response.put("type", "playersInfo");
         response.put("count", count);
 
-        List<JSONObject> playersList = new ArrayList<>();
+        JSONArray playersList = new JSONArray();
         players.forEach((plate, user) -> {
             JSONObject playerObj = new JSONObject();
             playerObj.put("plate", plate);
             playerObj.put("name", user.getName());
-            playersList.add(playerObj);
+            playersList.put(playerObj);
         });
         response.put("players", playersList);
         TextMessage message = new TextMessage(response.toString());
@@ -419,12 +419,12 @@ public class UserRestController extends TextWebSocketHandler {
         response.put("type", "playersInfo");
         response.put("count", players.size());
 
-        List<JSONObject> playersList = new ArrayList<>();
+        JSONArray playersList = new JSONArray();
         players.forEach((plate, user) -> {
             JSONObject playerObj = new JSONObject();
             playerObj.put("plate", plate);
             playerObj.put("name", user.getName());
-            playersList.add(playerObj);
+            playersList.put(playerObj);
         });
 
         response.put("players", playersList);
