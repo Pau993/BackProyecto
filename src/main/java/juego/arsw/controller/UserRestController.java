@@ -1,7 +1,9 @@
 package juego.arsw.controller;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,26 +34,26 @@ public class UserRestController extends TextWebSocketHandler {
     // Initialize a default EntityPerson object
 
     @Override
-public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-    String sessionId = session.getId();
-    String playerId = generatePlate(); // Usar la placa en lugar del sessionId
-    
-    // Guardar la sesión con la nueva placa como ID
-    sessions.put(playerId, session);
-    
-    // También necesitamos mantener un mapeo entre sessionId y playerId
-    sessionToPlayerId.put(sessionId, playerId);
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        String sessionId = session.getId();
+        String playerId = generatePlate(); // Usar la placa en lugar del sessionId
 
-    String message = "{\"type\":\"PLAYER_ID\",\"playerId\":\"" + playerId + "\"}";
-    session.sendMessage(new TextMessage(message));
+        // Guardar la sesión con la nueva placa como ID
+        sessions.put(playerId, session);
 
-    if (availablePersons.isEmpty()) {
-        initializeAvailablePersons();
+        // También necesitamos mantener un mapeo entre sessionId y playerId
+        sessionToPlayerId.put(sessionId, playerId);
+
+        String message = "{\"type\":\"PLAYER_ID\",\"playerId\":\"" + playerId + "\"}";
+        session.sendMessage(new TextMessage(message));
+
+        if (availablePersons.isEmpty()) {
+            initializeAvailablePersons();
+        }
+
+        broadcastAvailablePersons();
+        broadcastPlayerStates();
     }
-
-    broadcastAvailablePersons();
-    broadcastPlayerStates();
-}
 
     @Override
     public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
@@ -62,20 +64,19 @@ public void afterConnectionEstablished(WebSocketSession session) throws Exceptio
         try {
             JSONObject data = new JSONObject(payload);
 
-
             String role = data.optString("role", "user");
             sessionRoles.put(playerId, role);
 
-            if ("admin".equalsIgnoreCase(role)){
+            if ("admin".equalsIgnoreCase(role)) {
                 logger.info("Admin connected: " + playerId);
                 sessions.put(playerId, session);
-                
+
                 sendPlayersCountToAdmin(session);
                 return;
-            } 
-            
+            }
+
             sessions.put(playerId, session);
-            
+
             if (!players.containsKey(playerId)) {
                 User newPlayer = new User(playerId);
                 String name = data.optString("name", "Player_" + playerId);
@@ -86,13 +87,14 @@ public void afterConnectionEstablished(WebSocketSession session) throws Exceptio
             }
 
             if (data.has("personId") && data.has("active")) {
-                System.out.println("-------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+                System.out.println(
+                        "-------------------------------------------------------------------------------------------------------------------------------------------------------------------");
                 handlePersonStateUpdate(data);
                 return;
-                
+
             }
 
-            if(data.has("type") && data.getString("type").equals("collectPerson")) {
+            if (data.has("type") && data.getString("type").equals("collectPerson")) {
                 String personId = data.getString("personId");
                 handlePersonCollected(playerId, personId);
                 return;
@@ -115,20 +117,20 @@ public void afterConnectionEstablished(WebSocketSession session) throws Exceptio
         try {
             String personId = data.getString("personId");
             boolean active = data.getBoolean("active");
-    
+
             EntityPerson person = availablePersons.get(personId);
             if (person != null) {
                 // Remover la persona si está inactiva
                 if (!active) {
                     availablePersons.remove(personId);
                 }
-                
+
                 // Broadcast el cambio de estado
                 broadcastPersonStateUpdate(personId, active);
-                
+
                 // Broadcast la lista actualizada de personas disponibles
                 broadcastAvailablePersons();
-                
+
                 logger.info("Updated person state: " + personId + ", active: " + active);
             } else {
                 logger.warning("Person not found: " + personId);
@@ -144,10 +146,10 @@ public void afterConnectionEstablished(WebSocketSession session) throws Exceptio
             broadcast.put("type", "personStateUpdate");
             broadcast.put("personId", personId);
             broadcast.put("active", active);
-    
+
             String jsonMessage = objectMapper.writeValueAsString(broadcast);
             TextMessage message = new TextMessage(jsonMessage);
-    
+
             sessions.values().forEach(session -> {
                 try {
                     if (session.isOpen()) {
@@ -179,7 +181,7 @@ public void afterConnectionEstablished(WebSocketSession session) throws Exceptio
         try {
             Map<String, Object> broadcast = new HashMap<>();
             Map<String, Object> personsList = new HashMap<>();
-    
+
             availablePersons.forEach((id, person) -> {
                 Map<String, Object> personData = new HashMap<>();
                 personData.put("id", person.getId());
@@ -188,13 +190,13 @@ public void afterConnectionEstablished(WebSocketSession session) throws Exceptio
                 personData.put("file", person.getSpriteFile());
                 personsList.put(id, personData);
             });
-    
+
             broadcast.put("type", "availablePersons");
             broadcast.put("persons", personsList);
-    
+
             String jsonMessage = objectMapper.writeValueAsString(broadcast);
             TextMessage message = new TextMessage(jsonMessage);
-    
+
             sessions.values().forEach(session -> {
                 try {
                     if (session.isOpen()) {
@@ -208,7 +210,7 @@ public void afterConnectionEstablished(WebSocketSession session) throws Exceptio
             logger.severe("Error creating available persons broadcast: " + e.getMessage());
         }
     }
-    
+
     private void handlePersonCollected(String playerId, String personId) {
         EntityPerson person = availablePersons.remove(personId);
         if (person != null) {
@@ -271,17 +273,17 @@ public void afterConnectionEstablished(WebSocketSession session) throws Exceptio
     }
 
     @Override
-public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-    String sessionId = session.getId();
-    String playerId = sessionToPlayerId.get(sessionId);
-    
-    sessions.remove(playerId);
-    players.remove(playerId);
-    sessionToPlayerId.remove(sessionId);
-    
-    logger.info("Player " + playerId + " disconnected");
-    broadcastPlayerStates();
-}
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        String sessionId = session.getId();
+        String playerId = sessionToPlayerId.get(sessionId);
+
+        sessions.remove(playerId);
+        players.remove(playerId);
+        sessionToPlayerId.remove(sessionId);
+
+        logger.info("Player " + playerId + " disconnected");
+        broadcastPlayerStates();
+    }
 
     private void broadcastPlayerPositions() {
         try {
@@ -324,14 +326,14 @@ public void afterConnectionClosed(WebSocketSession session, CloseStatus status) 
             JSONObject data = new JSONObject(payload);
             String targetPlayerId;
             String hasPerson;
-    
+
             // Handle both frontend formats
             if (data.has("id")) {
                 targetPlayerId = data.getString("id");
             } else {
                 targetPlayerId = data.getString("playerId");
             }
-    
+
             // Handle both string and integer hasPerson values
             if (data.has("hasPerson")) {
                 Object hasPersonValue = data.get("hasPerson");
@@ -345,7 +347,7 @@ public void afterConnectionClosed(WebSocketSession session, CloseStatus status) 
             } else {
                 throw new IllegalArgumentException("Missing hasPerson value");
             }
-    
+
             User player = players.get(targetPlayerId);
             if (player != null) {
                 player.setHasPerson(hasPerson);
@@ -365,10 +367,10 @@ public void afterConnectionClosed(WebSocketSession session, CloseStatus status) 
             broadcast.put("type", "personUpdate");
             broadcast.put("playerId", playerId);
             broadcast.put("hasPerson", hasPerson);
-    
+
             String jsonMessage = objectMapper.writeValueAsString(broadcast);
             TextMessage message = new TextMessage(jsonMessage);
-    
+
             sessions.values().forEach(session -> {
                 try {
                     if (session.isOpen()) {
@@ -384,52 +386,73 @@ public void afterConnectionClosed(WebSocketSession session, CloseStatus status) 
         }
     }
 
-
     private void broadcastPlayersCountToAdmins() {
         int count = players.size();
         JSONObject response = new JSONObject();
-        response.put("type", "playersCount");
+        response.put("type", "playersInfo");
         response.put("count", count);
+
+        List<JSONObject> playersList = new ArrayList<>();
+        players.forEach((plate, user) -> {
+            JSONObject playerObj = new JSONObject();
+            playerObj.put("plate", plate);
+            playerObj.put("name", user.getName());
+            playersList.add(playerObj);
+        });
+        response.put("players", playersList);
         TextMessage message = new TextMessage(response.toString());
 
-        sessions.forEach((sessionId, sess) -> {
-            String role = sessionRoles.getOrDefault(sessionId, "user");
+        sessions.forEach((playerId, sess) -> {
+            String role = sessionRoles.getOrDefault(playerId, "user");
             if ("admin".equalsIgnoreCase(role) && sess.isOpen()) {
                 try {
                     sess.sendMessage(message);
                 } catch (IOException e) {
-                    logger.warning("Error enviando conteo a admin " + sessionId + ": " + e.getMessage());
+                    logger.warning("Error enviando Info a admin " + playerId+ ": " + e.getMessage());
                 }
             }
         });
     }
 
     private void sendPlayersCountToAdmin(WebSocketSession session) throws IOException {
-        int count = players.size();
         JSONObject response = new JSONObject();
-        response.put("type", "playersCount");
-        response.put("count", count);
-        session.sendMessage(new TextMessage(response.toString()));
+        response.put("type", "playersInfo");
+        response.put("count", players.size());
+
+        List<JSONObject> playersList = new ArrayList<>();
+        players.forEach((plate, user) -> {
+            JSONObject playerObj = new JSONObject();
+            playerObj.put("plate", plate);
+            playerObj.put("name", user.getName());
+            playersList.add(playerObj);
+        });
+
+        response.put("players", playersList);
+
+        if (session.isOpen()) {
+            session.sendMessage(new TextMessage(response.toString()));
+        } else {
+            logger.info("Sesión admin no abierta, no se envió info");
+        }
     }
 
     private String generatePlate() {
-    String letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    String numbers = "0123456789";
-    StringBuilder plate = new StringBuilder();
-    
-    // Genera 3 números
-    Random random = new Random();
-    for(int i = 0; i < 3; i++) {
-        plate.append(numbers.charAt(random.nextInt(numbers.length())));
-    }
-    
-    // Genera 3 letras
-    for(int i = 0; i < 3; i++) {
-        plate.append(letters.charAt(random.nextInt(letters.length())));
-    }
-    
-    return plate.toString();
-}
+        String letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String numbers = "0123456789";
+        StringBuilder plate = new StringBuilder();
 
+        // Genera 3 números
+        Random random = new Random();
+        for (int i = 0; i < 3; i++) {
+            plate.append(numbers.charAt(random.nextInt(numbers.length())));
+        }
+
+        // Genera 3 letras
+        for (int i = 0; i < 3; i++) {
+            plate.append(letters.charAt(random.nextInt(letters.length())));
+        }
+
+        return plate.toString();
+    }
 
 }
