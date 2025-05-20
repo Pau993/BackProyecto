@@ -54,7 +54,7 @@ public void afterConnectionEstablished(WebSocketSession session) throws Exceptio
 }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+    public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String sessionId = session.getId();
         String playerId = sessionToPlayerId.get(sessionId);
         String payload = message.getPayload();
