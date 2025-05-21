@@ -175,6 +175,13 @@ public class UserRestController extends TextWebSocketHandler {
         availablePersons.put("p7", new EntityPerson("p7", 6, 9, "personaVerde.png"));
         availablePersons.put("p8", new EntityPerson("p8", 3, 4, "tombo.png"));
         availablePersons.put("p9", new EntityPerson("p9", 14, 9, "tombo1.png"));
+        availablePersons.put("p10", new EntityPerson("p10", 12, 1, "personaVerde.png"));
+        availablePersons.put("p11", new EntityPerson("p11", 6, 1, "tombo1.png"));
+        availablePersons.put("p12", new EntityPerson("p12", 4, 1, "mujer.png"));
+        availablePersons.put("p13", new EntityPerson("p13", 3, 7, "personaEstudiante.png"));
+        availablePersons.put("p14", new EntityPerson("p14", 2, 6, "personaCampesino.png"));
+        availablePersons.put("p15", new EntityPerson("p15", 5, 9, "mujer1.png"));
+        
     }
 
     private void broadcastAvailablePersons() {
