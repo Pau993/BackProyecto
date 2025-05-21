@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import juego.arsw.model.EntityPerson;
 import juego.arsw.model.User;
 import org.json.JSONArray;
-
 @RestController
 public class UserRestController extends TextWebSocketHandler {
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
@@ -182,7 +181,7 @@ public class UserRestController extends TextWebSocketHandler {
         availablePersons.put("p13", new EntityPerson("p13", 3, 7, "personaEstudiante.png"));
         availablePersons.put("p14", new EntityPerson("p14", 2, 6, "personaCampesino.png"));
         availablePersons.put("p15", new EntityPerson("p15", 5, 9, "mujer1.png"));
-
+        
     }
 
     private void broadcastAvailablePersons() {
@@ -416,7 +415,7 @@ public class UserRestController extends TextWebSocketHandler {
                 try {
                     sess.sendMessage(message);
                 } catch (IOException e) {
-                    logger.warning("Error enviando Info a admin " + playerId + ": " + e.getMessage());
+                    logger.warning("Error enviando Info a admin " + playerId+ ": " + e.getMessage());
                 }
             }
         });
@@ -465,5 +464,4 @@ public class UserRestController extends TextWebSocketHandler {
 
         return plate.toString();
     }
-
 }
