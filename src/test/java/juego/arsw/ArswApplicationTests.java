@@ -15,14 +15,11 @@ class ArswApplicationTests {
 
     @Test
     void contextLoads() {
-        // Verifica que el contexto de Spring se carga correctamente
         assertNotNull(applicationContext);
     }
 
     @Test
     void mainMethodShouldStartWithoutExceptions() {
-        // Simular llamada al método main
-        // Este test básicamente verifica que no se lanzan excepciones
         ArswApplication.main(new String[]{});
     }
 }
